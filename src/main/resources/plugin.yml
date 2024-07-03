@@ -1,0 +1,7 @@
+name: EntityCC
+version: '${version}'
+main: link.sakacloud.entitycc.EntityCC
+api-version: '1.21'
+authors: [Zakayi]
+description: 一个实体数量控制插件
+website: www.sakacloud.link
