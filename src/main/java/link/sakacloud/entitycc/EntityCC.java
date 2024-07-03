@@ -1,14 +1,17 @@
 package link.sakacloud.entitycc;
-import org.bukkit.Bukkit;
+
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Silverfish;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class EntityCC extends JavaPlugin implements Listener {
+import java.util.*;
+
+public class EntityCC extends JavaPlugin {
 
     private int maxSilverfish;
 
@@ -16,45 +19,36 @@ public class EntityCC extends JavaPlugin implements Listener {
     public void onEnable() {
         saveDefaultConfig();
         maxSilverfish = getConfig().getInt("max-silverfish");
-        Bukkit.getPluginManager().registerEvents(this, this);
+
+        getServer().getPluginManager().registerEvents(new SilverfishListener(), this);
     }
 
-    @EventHandler
-    public void onSilverfishSpawn(EntitySpawnEvent event) {
-        Entity entity = event.getEntity();
-        if (entity.getType() == EntityType.SILVERFISH) {
-            int currentSilverfishCount = getSilverfishCount();
-            if (currentSilverfishCount >= maxSilverfish) {
-                killOldestSilverfish();
+    private class SilverfishListener implements Listener {
+
+        private int silverfishCount = 0;
+
+
+        @EventHandler
+        public void onEntityDeath(EntityDeathEvent event) {
+
+            if (event.getEntity() instanceof Silverfish) {
+                silverfishCount--;
             }
         }
-    }
 
-    private int getSilverfishCount() {
-        int count = 0;
-        for (World world : Bukkit.getServer().getWorlds()) {
-            for (Entity entity : world.getEntities()) {
-                if (entity.getType() == EntityType.SILVERFISH) {
-                    count++;
+        @EventHandler
+        public void onEntitySpawn(EntitySpawnEvent event) {
+            if (event.getEntity() instanceof Silverfish) {
+                silverfishCount++;
+
+                if (silverfishCount > maxSilverfish) {
+                    World world = event.getEntity().getWorld();
+                    List<Silverfish> silverfishes = (List<Silverfish>) world.getEntitiesByClass(Silverfish.class);
+                    silverfishes.sort(Comparator.comparingLong(Entity::getTicksLived));
+                    silverfishes.getFirst().remove();
+                    silverfishCount--;
                 }
             }
-        }
-        return count;
-    }
-
-    private void killOldestSilverfish() {
-        Entity oldestSilverfish = null;
-        for (World world : Bukkit.getServer().getWorlds()) {
-            for (Entity entity : world.getEntities()) {
-                if (entity.getType() == EntityType.SILVERFISH) {
-                    if (oldestSilverfish == null || oldestSilverfish.getTicksLived() < entity.getTicksLived()) {
-                        oldestSilverfish = entity;
-                    }
-                }
-            }
-        }
-        if (oldestSilverfish != null) {
-            oldestSilverfish.remove();
         }
     }
 }
